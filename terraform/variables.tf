@@ -6,7 +6,7 @@ connect.
 
 Example: ~/.ssh/terraform.pub
 DESCRIPTION
-  default = "/Users/mikan/.ssh/id_rsa.pub"
+  default = "~/.ssh/id_rsa.pub"
 }
 
 variable "key_name" {
@@ -19,16 +19,54 @@ variable "aws_region" {
   default     = "eu-west-1"
 }
 
-# Ubuntu Precise 12.04 LTS (x64)
+# AMI (x64)
 variable "aws_amis" {
   default = {
 #    eu-west-1 = "ami-b1cf19c6"
 #    eu-west-1 = "ami-e2065591" # Rancher os 0.7.1 without ECS
 #    "ami-a51e47d6"
      eu-west-1 = "ami-c62170b5" # Från https://github.com/rancher/os/blob/master/README.md/#user-content-amazon
-
-    us-east-1 = "ami-de7ab6b6"
-    us-west-1 = "ami-3f75767a"
-    us-west-2 = "ami-21f78e11"
+    eu-west-2 = "ami-65e8e201"
+    us-east-1 = "ami-dfdff3c8"
+    us-west-1 = "ami-da2075ba"
+    us-west-2 = "ami-ab3192cb"
   }
 }
+# Change to 3 later when you have the correct token below
+variable "rhostsprod_build" {
+  type = "string"
+  default = "3"
+}
+
+variable "testregistrationtoken" {
+  type = "string"
+  default = "56C0BC13B2FF40F68E34:1483938000000:WxhFuYx0EMoFEdqrywlHDutzs"
+}
+# Change to 3 later when you have the correct token below
+variable "rhoststest_count" {
+  type = "string"
+  default = "3"
+}
+
+# Create override for prod
+# Combo of: https://thepracticalsysadmin.com/category/rancher/ and  https://gist.github.com/mathuin/ed0fa5666e4f063b94abb5b1a49d9919
+# mikan@t460s:~/cag/cdkurs/terraform$ rancher env create prod
+# 1a68
+# Create registration key 
+# curl -s -u ${RANCHER_ACCESS_KEY}:${RANCHER_SECRET_KEY} -X POST -H "Accept: application/json" -H "Content-Type: application/json" ${RANCHER_URL}/v1/projects/$PID/registrationTokens | jq -r '.id'
+# https://thepracticalsysadmin.com/category/rancher/
+# RANCHER_PROD_URL=$(curl  -s -u ${RANCHER_ACCESS_KEY}:${RANCHER_SECRET_KEY} ${RANCHER_URL}/v1/registrationtokens?projectId=$PROJID | head -1 | grep -nhoe 'registrationUrl[^},]*}' | egrep -hoe 'https?:.*[^"}]')
+# RANCHER_PROD_REALURL=`echo $RANCHER_PROD_URL | sed 's-\\\\--g'`
+# echo -e "variable \"produrl\" {\n  type = \"string\"\n  default = \"${RANCHER_PROD_REALURL}\"\n}" > variablesauto.tf
+
+# Change to 3 override file
+variable "rhostsprod_count" {
+  type = "string"
+  default = "0"
+}
+
+variable "produrl" {
+  type = "string"
+  default = "Dummy, change by script in override file"
+}
+
