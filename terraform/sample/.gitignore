@@ -1,1 +1,2 @@
 terraform.tfstate*
+!*_override.tf

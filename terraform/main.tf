@@ -157,6 +157,13 @@ resource "aws_security_group" "rhosts" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  # Go access from anywhere
+  ingress {
+    from_port   = 8154
+    to_port     = 8154
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
    # HTTPs access from anywhere
   ingress {
     from_port   = 443
