@@ -32,20 +32,27 @@ variable "aws_amis" {
     us-west-2 = "ami-ab3192cb"
   }
 }
+
 # Change to 3 later when you have the correct token below
-variable "rhostsprod_build" {
+variable "rhostsbuild_count" {
   type = "string"
-  default = "3"
+  default = "0"
 }
 
-variable "testregistrationtoken" {
+variable "buildregistrationtoken" {
   type = "string"
-  default = "56C0BC13B2FF40F68E34:1483938000000:WxhFuYx0EMoFEdqrywlHDutzs"
+  default = "CHANGE"
 }
+# Override in an override.tf file
 # Change to 3 later when you have the correct token below
 variable "rhoststest_count" {
   type = "string"
-  default = "3"
+  default = "0"
+}
+
+variable "testurl" {
+  type = "string"
+  default = "Dummy, change by script in override file"
 }
 
 # Create override for prod

@@ -36,23 +36,23 @@ resource "aws_subnet" "rserver" {
 }
 
 # Create a subnet to launch our instances into
-resource "aws_subnet" "rtesthosts" {
+resource "aws_subnet" "rbuildhosts" {
 #
   vpc_id                  = "${aws_vpc.default.id}"
   cidr_block              = "10.0.3.0/24"
-  map_public_ip_on_launch = true # Todo, change when ELB is working
+  map_public_ip_on_launch = true 
 }
 # Create a subnet to launch our instances into
-resource "aws_subnet" "rbuildhosts" {
+resource "aws_subnet" "rtesthosts" {
   vpc_id                  = "${aws_vpc.default.id}"
   cidr_block              = "10.0.4.0/24"
-  map_public_ip_on_launch = true # Todo, change when ELB is working
+  map_public_ip_on_launch = true 
 }
 # Create a subnet to launch our instances into
 resource "aws_subnet" "rprodhosts" {
   vpc_id                  = "${aws_vpc.default.id}"
   cidr_block              = "10.0.5.0/24"
-  map_public_ip_on_launch = true # Todo, change when ELB is working
+  map_public_ip_on_launch = true 
 }
 
 
@@ -231,9 +231,7 @@ resource "aws_instance" "rserver" {
   # Our Security group to allow HTTP and SSH access
   vpc_security_group_ids = ["${aws_security_group.default.id}"]
 
-  # We're going to launch into the same subnet as our ELB. In a production
-  # environment it's more common to have a separate private subnet for
-  # backend instances.
+  # Network to launch in.
   subnet_id = "${aws_subnet.rserver.id}"
 
   # We run a remote provisioner on the instance after creating it.
@@ -242,49 +240,24 @@ resource "aws_instance" "rserver" {
   provisioner "remote-exec" {
     inline = [
       "sleep 30",
-      "docker run -d --restart=unless-stopped -p 8080:8080 rancher/server",
+      "docker run -d --restart=unless-stopped -p 8080:8080 rancher/server:v1.3.0",
     ]
   }
 }
 
-resource "aws_instance" "rtesthosts" {
-  # The connection block tells our provisioner how to
-  # communicate with the resource (instance)
-  count = "${var.rhoststest_count}"
+resource "aws_instance" "rbuildhosts" {
+  # Number of hosts
+  count = "${var.rhostsbuild_count}"
   connection {
-    # The default username for our AMI
     user = "rancher"
-
-    # The connection will use the local SSH agent for authentication.
   }
-  # We doesn't want to wait for the os to shutdown
   instance_initiated_shutdown_behavior = "terminate"
   instance_type = "t2.small"
-
-  # Lookup the correct AMI based on the region
-  # we specified
   ami = "${lookup(var.aws_amis, var.aws_region)}"
-
-  # The name of our SSH keypair we created above.
   key_name = "${aws_key_pair.auth.id}"
-
-  # Our Security group to allow HTTP and SSH access
   vpc_security_group_ids = ["${aws_security_group.rhosts.id}"]
-
-  # We're going to launch into the same subnet as our ELB. In a production
-  # environment it's more common to have a separate private subnet for
-  # backend instances.
-  subnet_id = "${aws_subnet.rtesthosts.id}"
-
-  # We run a remote provisioner on the instance after creating it.
-  # In this case, we just install nginx and start it. By default,
-  # this should be on port 80
- # provisioner "remote-exec" {
- #   inline = [
- #     "sleep 30",
- #     "docker run -e CATTLE_HOST_LABELS='SERVICES=infra'  -d --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/rancher:/var/lib/rancher rancher/agent:v1.1.3 http://${aws_instance.rserver.public_ip}:8080/v1/scripts/${var.testregistrationtoken}",
-  #  ]
-  #}
+  subnet_id = "${aws_subnet.rbuildhosts.id}"
+  # We use cloud-init to set up the server
   user_data = <<EOF
 #cloud-config  
 rancher:
@@ -292,7 +265,34 @@ rancher:
     rancher-agent1:
       image: rancher/agent:v1.1.3
       privileged: true
-      command: http://${aws_instance.rserver.public_ip}:8080/v1/scripts/${var.testregistrationtoken}
+      command: http://${aws_instance.rserver.public_ip}:8080/v1/scripts/${var.buildregistrationtoken}
+      restart: always
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /var/lib/rancher:/var/lib/rancher
+EOF
+}
+
+
+resource "aws_instance" "rtesthosts" {
+  count = "${var.rhoststest_count}"
+  connection {
+    user = "rancher"
+  }
+  instance_initiated_shutdown_behavior = "terminate"
+  instance_type = "t2.small"
+  ami = "${lookup(var.aws_amis, var.aws_region)}"
+  key_name = "${aws_key_pair.auth.id}"
+  vpc_security_group_ids = ["${aws_security_group.rhosts.id}"]
+  subnet_id = "${aws_subnet.rtesthosts.id}"
+  user_data = <<EOF
+#cloud-config  
+rancher:
+  services:
+    rancher-agent1:
+      image: rancher/agent:v1.1.3
+      privileged: true
+      command: ${var.testurl}
       restart: always
       volumes:
         - /var/run/docker.sock:/var/run/docker.sock
@@ -302,29 +302,15 @@ EOF
 
 resource "aws_instance" "rprodhosts" {
   count = "${var.rhostsprod_count}"
-
-  # The connection block tells our provisioner how to
-  # communicate with the resource (instance)
   connection {
-    # The default username for our AMI
     user = "rancher"
   }
-  # We doesn't want to wait for the os to shutdown
   instance_initiated_shutdown_behavior = "terminate"
   instance_type = "t2.small"
-
-  # Lookup the correct AMI based on the region
-  # we specified
   ami = "${lookup(var.aws_amis, var.aws_region)}"
-
-  # The name of our SSH keypair we created above.
   key_name = "${aws_key_pair.auth.id}"
-
-  # Our Security group to allow HTTP and SSH access
   vpc_security_group_ids = ["${aws_security_group.rhosts.id}"]
-
   subnet_id = "${aws_subnet.rprodhosts.id}"
-
   user_data = <<EOF
 #cloud-config  
 rancher:
