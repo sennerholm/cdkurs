@@ -9,6 +9,6 @@ output "hostip" {
 output "Rancherserver-url" {
   value = "http://${aws_instance.rserver.public_ip}:8080"
 }
-output "rtesthosts" {
-  value = "${join( "," , aws_instance.rtesthosts.*.public_ip ) }"
+output "rbuildhosts" {
+  value = "${join( "," , aws_instance.rbuildhosts.*.public_ip ) }"
 }
